@@ -1,0 +1,1148 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InterRehab NeuroBridge Procurement Plan (Cloud Sync)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght=300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Sarabun', sans-serif; }
+
+        /* ---------- Responsive Modal (popup) ---------- */
+        #inputModal .modal-box { max-height: 92vh; display: flex; flex-direction: column; }
+        #inputModal .modal-header, #inputModal .modal-footer { flex-shrink: 0; }
+        #inputModal .modal-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        @media (min-width: 640px) {
+            #inputModal .modal-box { max-width: 34rem; }
+            #inputModal .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        }
+        @media (max-width: 639px) {
+            #inputModal .modal-box { max-height: 96vh; }
+        }
+
+        /* ---------- Print: only selected rows ---------- */
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white; color: black; padding: 0; }
+            .print-container { width: 100%; max-width: 100%; border: none; box-shadow: none; padding: 0; margin: 0; }
+            .overflow-x-auto { overflow: visible !important; }
+            table { width: 100% !important; table-layout: auto !important; }
+            th, td { padding: 6px 4px !important; font-size: 11px !important; word-break: break-word; }
+            select { background: none !important; border: none !important; appearance: none !important; padding: 0 !important; font-weight: bold; }
+            .row-checkbox-cell { display: none !important; }
+            tr.print-hide { display: none !important; }
+            #print-scope-note { display: block !important; text-align: center; font-size: 12px; margin-bottom: 8px; color: #555; }
+        }
+        #print-scope-note { display: none; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+
+    <!-- แถบแจ้งเตือนสถานะการซิงค์ข้อมูลคลาวด์ -->
+    <div id="cloud-sync-status" class="bg-blue-600 text-white text-center py-1 text-xs font-semibold no-print transition-all duration-300">
+        🌐 เชื่อมต่อระบบฐานข้อมูลออนไลน์กลาง (Cloud Database Active)
+    </div>
+
+    <!-- ================= หน้าล็อกอิน (LOGIN PAGE) ================= -->
+    <div id="login-screen" class="fixed inset-0 bg-slate-900 flex items-center justify-center z-[100] px-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl border border-slate-100 space-y-5 text-center">
+            <div class="flex justify-center">
+                <img src="NueroBridge Logo.png" alt="InterRehab NeuroBridge Logo" class="h-24 object-contain" onerror="this.src='https://placehold.co/200x80?text=NeuroBridge'">
+            </div>
+            <div>
+                <h2 class="text-xl font-bold text-slate-900">เข้าสู่ระบบจัดซื้อและคลังสินค้า</h2>
+                <p class="text-xs text-slate-500 mt-1">InterRehab NeuroBridge Cloud Database Sync System</p>
+            </div>
+
+            <div class="space-y-4 text-left">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">ชื่อผู้ใช้งาน (Username)</label>
+                    <input type="text" id="loginUsername" placeholder="พิมพ์ชื่อผู้ใช้งานของคุณ" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">รหัสผ่าน (Password)</label>
+                    <input type="password" id="loginPassword" placeholder="กรอกรหัสผ่านของคุณ" onkeydown="if(event.key === 'Enter') handleLogin()" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-600">
+                </div>
+                <label class="flex items-center gap-2 text-xs text-slate-500 justify-start cursor-pointer">
+                    <input type="checkbox" id="rememberMe" checked class="w-4 h-4"> จดจำการเข้าสู่ระบบไว้ในเครื่องนี้ (ไม่ต้องล็อกอินใหม่ทุกครั้งที่รีเฟรช)
+                </label>
+                <div id="loginError" class="text-xs text-red-500 font-medium hidden">⚠️ ข้อความแจ้งเตือนความผิดพลาด</div>
+
+                <button type="button" id="btnLoginSubmit" onclick="handleLogin()" class="w-full bg-blue-600 text-white text-sm font-semibold py-3 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-600/20">เข้าสู่ระบบ / ลงทะเบียนใหม่</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= ส่วนเนื้อหาแอปหลัก ================= -->
+    <div id="main-application" class="hidden">
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm no-print">
+            <div class="max-w-7xl px-4 py-2 mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="showPage('dashboard')">
+                    <img src="NueroBridge Logo.png" alt="InterRehab NeuroBridge Logo" class="h-14 w-auto object-contain" onerror="this.src='https://placehold.co/150x50?text=NeuroBridge'">
+                </div>
+
+                <div class="flex items-center space-x-4 w-full sm:w-auto justify-end">
+                    <button onclick="syncWithCloud()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1">
+                        🔄 ซิงค์ข้อมูลล่าสุด
+                    </button>
+
+                    <!-- ส่วนแจ้งเตือนขวาบน -->
+                    <div class="relative cursor-pointer p-2 bg-slate-100 hover:bg-slate-200 rounded-xl transition" onclick="toggleNotificationDropdown()">
+                        <span class="text-lg">🔔</span>
+                        <span id="noti-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
+
+                        <div id="noti-dropdown" class="absolute right-0 mt-3 w-80 max-w-[90vw] bg-white border border-slate-200 rounded-xl shadow-xl py-2 hidden z-50 text-left text-xs">
+                            <div class="px-3 py-1.5 font-bold text-slate-700 border-b border-slate-100 flex items-center justify-between">
+                                <span>รายการแจ้งเตือน / ประวัติการอัปเดต</span>
+                                <span onclick="event.stopPropagation(); clearActivityLog()" class="text-[10px] font-medium text-slate-400 hover:text-rose-500 cursor-pointer">ล้างทั้งหมด</span>
+                            </div>
+                            <div id="noti-list" class="max-h-72 overflow-y-auto divide-y divide-slate-50">
+                                <p class="text-slate-400 p-3 text-center">ไม่มีรายการแจ้งเตือน</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-right">
+                        <p id="displayUserName" class="text-sm font-bold text-slate-900">ชื่อพนักงาน</p>
+                        <div class="flex items-center justify-end gap-2 mt-0.5">
+                            <button onclick="handleLogout()" class="text-xs text-red-500 hover:text-red-700 font-medium transition">ออกจากระบบ ↩</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 py-8 print-container">
+
+            <p id="print-scope-note"></p>
+
+            <!-- หน้าหลัก (MAIN DASHBOARD) -->
+            <div id="page-dashboard" class="page-view space-y-6">
+                <div class="bg-gradient-to-r from-blue-700 via-indigo-700 to-teal-600 rounded-2xl p-6 sm:p-8 text-white shadow-md">
+                    <h2 class="text-2xl font-bold mb-2">InterRehab NeuroBridge ระบบแผนจัดซื้อ สั่งซ่อม รายการเบิก และคลังสินค้า</h2>
+                </div>
+
+                <!-- แผงควบคุมจัดการผู้ใช้งานระบบ -->
+                <div id="admin-approval-panel" class="bg-white p-6 rounded-2xl border-2 border-dashed border-blue-200 shadow-sm hidden space-y-6">
+                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-2">
+                        <span>🛡️</span> แผงควบคุมจัดการผู้ใช้งานระบบ (Master Admin Only)
+                    </h3>
+                    <div>
+                        <h4 class="text-xs font-bold text-amber-600 uppercase tracking-wider mb-2 flex items-center gap-1">⏳ รายการผู้ใช้งานที่รออนุมัติเข้าใช้งาน</h4>
+                        <div id="pending-users-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-2 flex items-center gap-1">✅ รายชื่อพนักงานที่มีสิทธิ์ในระบบ</h4>
+                        <div id="approved-users-list" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div onclick="showPage('purchase')" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-blue-500 transition cursor-pointer flex flex-col justify-between group">
+                        <div class="flex items-center justify-between mb-4"><div class="p-4 bg-blue-50 rounded-xl group-hover:bg-blue-100 text-2xl">🛒</div></div>
+                        <div><h3 class="text-lg font-bold text-slate-900 mb-1">รายการสั่งซื้อ</h3><p class="text-xs text-slate-500">Purchase Orders</p></div>
+                    </div>
+                    <div onclick="showPage('maintenance')" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-amber-500 transition cursor-pointer flex flex-col justify-between group">
+                        <div class="flex items-center justify-between mb-4"><div class="p-4 bg-amber-50 rounded-xl group-hover:bg-amber-100 text-2xl">🔧</div></div>
+                        <div><h3 class="text-lg font-bold text-slate-900 mb-1">รายการสั่งซ่อม</h3><p class="text-xs text-slate-500">Maintenance & Repair</p></div>
+                    </div>
+                    <div onclick="showPage('requisition')" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-emerald-500 transition cursor-pointer flex flex-col justify-between group">
+                        <div class="flex items-center justify-between mb-4"><div class="p-4 bg-emerald-50 rounded-xl group-hover:bg-emerald-100 text-2xl">📦</div></div>
+                        <div><h3 class="text-lg font-bold text-slate-900 mb-1">รายการเบิก</h3><p class="text-xs text-slate-500">Requisition</p></div>
+                    </div>
+                    <div onclick="showPage('inventory')" class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md hover:border-rose-500 transition cursor-pointer flex flex-col justify-between group">
+                        <div class="flex items-center justify-between mb-4"><div class="p-4 bg-rose-50 rounded-xl group-hover:bg-rose-100 text-2xl">📊</div></div>
+                        <div><h3 class="text-lg font-bold text-slate-900 mb-1">รายการคงเหลือ</h3><p class="text-xs text-slate-500">Inventory Stocks</p></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- หน้า: รายการสั่งซื้อ -->
+            <div id="page-purchase" class="page-view hidden space-y-4">
+                <div class="flex items-center justify-between text-sm text-slate-500 mb-2 no-print">
+                    <div class="flex items-center space-x-2">
+                        <span class="cursor-pointer hover:text-blue-600" onclick="showPage('dashboard')">หน้าหลัก</span><span>/</span><span class="text-slate-800 font-medium">รายการสั่งซื้อ</span>
+                    </div>
+                    <div class="flex items-center space-x-2 flex-wrap justify-end gap-2">
+                        <span id="selcount-purchase" class="text-xs text-slate-400"></span>
+                        <button onclick="printModule('purchase')" class="bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-slate-300 transition">🖨️ พิมพ์รายการ</button>
+                        <button onclick="exportModule('purchase')" class="bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-slate-300 transition">📊 ส่งออกไฟล์</button>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2"><span>🛒</span> รายการสั่งซื้อ (Purchase Orders)</h2>
+                    <div class="flex items-center gap-2 w-full sm:w-auto no-print">
+                        <input type="text" id="search-purchase" oninput="renderAllTables()" placeholder="🔍 ค้นหาในหน้านี้..." class="border border-slate-200 rounded-xl px-3 py-1.5 text-xs w-full sm:w-48 focus:outline-none focus:border-blue-500">
+                        <select id="filter-purchase" onchange="renderAllTables()" class="border border-slate-200 rounded-xl px-2 py-1.5 text-xs focus:outline-none bg-white">
+                            <option value="">ทั้งหมด</option>
+                            <option value="⏳ รอส่งคำสั่งซื้อ">⏳ รอส่งคำสั่งซื้อ</option>
+                            <option value="⏳ รออนุมัติ">⏳ รออนุมัติ</option>
+                            <option value="🚚 กำลังจัดส่ง">🚚 กำลังจัดส่ง</option>
+                            <option value="✅ ได้รับสินค้าแล้ว">✅ ได้รับสินค้าแล้ว</option>
+                        </select>
+                        <button onclick="openModal('purchase')" class="bg-blue-600 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-blue-700 transition whitespace-nowrap">+ สร้างคำสั่งซื้อ</button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                    <th class="p-4 text-center w-10 row-checkbox-cell no-print"><input type="checkbox" onchange="toggleSelectAll('purchase', this.checked)" class="w-4 h-4"></th>
+                                    <th class="p-4 text-center w-12">ลำดับ</th>
+                                    <th class="p-4">รายการที่สั่งซื้อ</th>
+                                    <th class="p-4 text-center w-20">จำนวน</th>
+                                    <th class="p-4 text-center w-24">หน่วยนับ</th>
+                                    <th class="p-4 text-right w-28">ราคา/หน่วย</th>
+                                    <th class="p-4 text-right w-28">ราคารวม</th>
+                                    <th class="p-4">หมายเหตุ</th>
+                                    <th class="p-4 w-32">รายงานโดย</th>
+                                    <th class="p-4 w-24">วันที่รายงาน</th>
+                                    <th class="p-4 w-36">สถานะติดตาม</th>
+                                    <th class="p-4 w-32 text-center admin-action-header hidden no-print">การจัดการ Admin</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-purchase" class="divide-y divide-slate-100 text-sm"></tbody>
+                        </table>
+                    </div>
+                    <div class="bg-slate-50 p-4 border-t border-slate-200 flex justify-end items-center font-bold text-slate-900 text-base">
+                        <span>รวมค่าใช้จ่ายสั่งซื้อทั้งหมด: &nbsp;</span>
+                        <span id="total-cost-purchase" class="text-blue-600">0.00</span>
+                        <span>&nbsp; บาท</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- หน้า: รายการสั่งซ่อม -->
+            <div id="page-maintenance" class="page-view hidden space-y-4">
+                <div class="flex items-center justify-between text-sm text-slate-500 mb-2 no-print">
+                    <div class="flex items-center space-x-2">
+                        <span class="cursor-pointer hover:text-blue-600" onclick="showPage('dashboard')">หน้าหลัก</span><span>/</span><span class="text-slate-800 font-medium">รายการสั่งซ่อม</span>
+                    </div>
+                    <div class="flex items-center space-x-2 flex-wrap justify-end gap-2">
+                        <span id="selcount-maintenance" class="text-xs text-slate-400"></span>
+                        <button onclick="printModule('maintenance')" class="bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-slate-300 transition">🖨️ พิมพ์รายการ</button>
+                        <button onclick="exportModule('maintenance')" class="bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-slate-300 transition">📊 ส่งออกไฟล์</button>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2"><span>🔧</span> รายการสั่งซ่อม (Maintenance & Repair)</h2>
+                    <div class="flex items-center gap-2 w-full sm:w-auto no-print">
+                        <input type="text" id="search-maintenance" oninput="renderAllTables()" placeholder="🔍 ค้นหาในหน้านี้..." class="border border-slate-200 rounded-xl px-3 py-1.5 text-xs w-full sm:w-48 focus:outline-none focus:border-blue-500">
+                        <select id="filter-maintenance" onchange="renderAllTables()" class="border border-slate-200 rounded-xl px-2 py-1.5 text-xs focus:outline-none bg-white">
+                            <option value="">ทั้งหมด</option>
+                            <option value="⏳ รอรายงานช่าง">⏳ รอรายงานช่าง</option>
+                            <option value="📞 ติดต่อช่างสำเร็จ">📞 ติดต่อช่างสำเร็จ</option>
+                            <option value="🔧 กำลังซ่อมแซม">🔧 กำลังซ่อมแซม</option>
+                            <option value="✅ ซ่อมเสร็จสิ้น">✅ ซ่อมเสร็จสิ้น</option>
+                        </select>
+                        <button onclick="openModal('maintenance')" class="bg-amber-600 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-amber-700 transition whitespace-nowrap">+ แจ้งซ่อมเครื่องมือ</button>
+                    </div>
+                </div>
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                    <th class="p-4 text-center w-10 row-checkbox-cell no-print"><input type="checkbox" onchange="toggleSelectAll('maintenance', this.checked)" class="w-4 h-4"></th>
+                                    <th class="p-4 text-center w-12">ลำดับ</th>
+                                    <th class="p-4">รายการที่สั่งซ่อม</th>
+                                    <th class="p-4 text-center w-20">จำนวน</th>
+                                    <th class="p-4 text-center w-24">หน่วยนับ</th>
+                                    <th class="p-4 text-right w-28">ค่าซ่อม/หน่วย</th>
+                                    <th class="p-4 text-right w-28">ราคารวม</th>
+                                    <th class="p-4">อาการ / ประวัติติดต่อช่าง</th>
+                                    <th class="p-4 w-36">นัดหมายช่าง</th>
+                                    <th class="p-4 w-32">วันที่ซ่อมเสร็จ</th>
+                                    <th class="p-4 w-32">รายงานโดย</th>
+                                    <th class="p-4 w-24">วันที่รายงาน</th>
+                                    <th class="p-4 w-36">สถานะติดตาม</th>
+                                    <th class="p-4 w-32 text-center admin-action-header hidden no-print">การจัดการ Admin</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-maintenance" class="divide-y divide-slate-100 text-sm"></tbody>
+                        </table>
+                    </div>
+                    <div class="bg-slate-50 p-4 border-t border-slate-200 flex justify-end items-center font-bold text-slate-900 text-base">
+                        <span>รวมค่าใช้จ่ายการซ่อมทั้งหมด: &nbsp;</span>
+                        <span id="total-cost-maintenance" class="text-amber-600">0.00</span>
+                        <span>&nbsp; บาท</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- หน้า: รายการเบิก -->
+            <div id="page-requisition" class="page-view hidden space-y-4">
+                <div class="flex items-center justify-between text-sm text-slate-500 mb-2 no-print">
+                    <div class="flex items-center space-x-2">
+                        <span class="cursor-pointer hover:text-blue-600" onclick="showPage('dashboard')">หน้าหลัก</span><span>/</span><span class="text-slate-800 font-medium">รายการเบิก</span>
+                    </div>
+                    <div class="flex items-center space-x-2 flex-wrap justify-end gap-2">
+                        <span id="selcount-requisition" class="text-xs text-slate-400"></span>
+                        <button onclick="printModule('requisition')" class="bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-slate-300 transition">🖨️ พิมพ์รายการ</button>
+                        <button onclick="exportModule('requisition')" class="bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-slate-300 transition">📊 ส่งออกไฟล์</button>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2"><span>📦</span> รายการเบิกวัสดุ (Requisition)</h2>
+                    <div class="flex items-center gap-2 w-full sm:w-auto no-print">
+                        <input type="text" id="search-requisition" oninput="renderAllTables()" placeholder="🔍 ค้นหาในหน้านี้..." class="border border-slate-200 rounded-xl px-3 py-1.5 text-xs w-full sm:w-48 focus:outline-none focus:border-blue-500">
+                        <select id="filter-requisition" onchange="renderAllTables()" class="border border-slate-200 rounded-xl px-2 py-1.5 text-xs focus:outline-none bg-white">
+                            <option value="">ทั้งหมด</option>
+                            <option value="⏳ รอจัดเตรียม">⏳ รอจัดเตรียม</option>
+                            <option value="📦 จ่ายวัสดุแล้ว">📦 จ่ายวัสดุแล้ว</option>
+                        </select>
+                        <button onclick="openModal('requisition')" class="bg-emerald-600 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-emerald-700 transition whitespace-nowrap">+ บันทึกใบเบิก</button>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-400 no-print">💡 ถ้าเลือก "ผูกกับรายการคงเหลือ" ตอนบันทึกใบเบิกใหม่ ระบบจะตัดจำนวนคงคลังในหน้ารายการคงเหลือให้อัตโนมัติ</p>
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                    <th class="p-4 text-center w-10 row-checkbox-cell no-print"><input type="checkbox" onchange="toggleSelectAll('requisition', this.checked)" class="w-4 h-4"></th>
+                                    <th class="p-4 text-center w-12">ลำดับ</th>
+                                    <th class="p-4">รายการที่เบิก</th>
+                                    <th class="p-4 text-center w-20">จำนวน</th>
+                                    <th class="p-4 text-center w-24">หน่วยนับ</th>
+                                    <th class="p-4 text-right w-28">มูลค่า/หน่วย</th>
+                                    <th class="p-4 text-right w-28">ราคารวมเบิก</th>
+                                    <th class="p-4">หมายเหตุ/ห้องที่นำไปใช้</th>
+                                    <th class="p-4 w-32">รายงานโดย</th>
+                                    <th class="p-4 w-24">วันที่รายงาน</th>
+                                    <th class="p-4 w-36">สถานะติดตาม</th>
+                                    <th class="p-4 w-32 text-center admin-action-header hidden no-print">การจัดการ Admin</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-requisition" class="divide-y divide-slate-100 text-sm"></tbody>
+                        </table>
+                    </div>
+                    <div class="bg-slate-50 p-4 border-t border-slate-200 flex justify-end items-center font-bold text-slate-900 text-base">
+                        <span>รวมมูลค่าสิ่งของที่เบิกทั้งหมด: &nbsp;</span>
+                        <span id="total-cost-requisition" class="text-emerald-600">0.00</span>
+                        <span>&nbsp; บาท</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- หน้า: รายการคงเหลือ -->
+            <div id="page-inventory" class="page-view hidden space-y-4">
+                <div class="flex items-center justify-between text-sm text-slate-500 mb-2 no-print">
+                    <div class="flex items-center space-x-2">
+                        <span class="cursor-pointer hover:text-blue-600" onclick="showPage('dashboard')">หน้าหลัก</span><span>/</span><span class="text-slate-800 font-medium">รายการคงเหลือ</span>
+                    </div>
+                    <div class="flex items-center space-x-2 flex-wrap justify-end gap-2">
+                        <span id="selcount-inventory" class="text-xs text-slate-400"></span>
+                        <button onclick="printModule('inventory')" class="bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-slate-300 transition">🖨️ พิมพ์รายการ</button>
+                        <button onclick="exportModule('inventory')" class="bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-slate-300 transition">📊 ส่งออกไฟล์</button>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <h2 class="text-xl font-bold text-slate-900 flex items-center gap-2"><span>📊</span> รายการคงเหลือ (Inventory Stocks)</h2>
+                    <div class="flex items-center gap-2 w-full sm:w-auto no-print">
+                        <input type="text" id="search-inventory" oninput="renderAllTables()" placeholder="🔍 ค้นหาคลังสินค้า..." class="border border-slate-200 rounded-xl px-3 py-1.5 text-xs w-full sm:w-48 focus:outline-none focus:border-blue-500">
+                        <select id="filter-inventory" onchange="renderAllTables()" class="border border-slate-200 rounded-xl px-2 py-1.5 text-xs focus:outline-none bg-white">
+                            <option value="">ทั้งหมด</option>
+                            <option value="🟢 คลังปกติ">🟢 คลังปกติ</option>
+                            <option value="🟡 ใกล้หมด">🟡 ใกล้หมด</option>
+                            <option value="🔴 หมดคลัง">🔴 หมดคลัง</option>
+                        </select>
+                        <button onclick="openModal('inventory')" class="bg-rose-600 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-rose-700 transition whitespace-nowrap">+ เพิ่มรายการคงเหลือ</button>
+                    </div>
+                </div>
+                <p class="text-xs text-slate-400 no-print">💡 เมื่อมีการเบิกที่ผูกกับรายการนี้ ระบบจะตัดจำนวนและปรับสถานะ (ปกติ/ใกล้หมด/หมดคลัง) ให้อัตโนมัติ</p>
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                                    <th class="p-4 text-center w-10 row-checkbox-cell no-print"><input type="checkbox" onchange="toggleSelectAll('inventory', this.checked)" class="w-4 h-4"></th>
+                                    <th class="p-4 text-center w-12">ลำดับ</th>
+                                    <th class="p-4">รายการคงเหลือ</th>
+                                    <th class="p-4 text-center w-20">จำนวน</th>
+                                    <th class="p-4 text-center w-24">หน่วยนับ</th>
+                                    <th class="p-4">หมายเหตุที่ตั้งพัสดุ</th>
+                                    <th class="p-4 w-32">รายงานโดย</th>
+                                    <th class="p-4 w-24">วันที่รายงาน</th>
+                                    <th class="p-4 w-36">สถานะติดตาม</th>
+                                    <th class="p-4 w-32 text-center admin-action-header hidden no-print">การจัดการ Admin</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-inventory" class="divide-y divide-slate-100 text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- ================= POP-UP MODAL (Responsive) ================= -->
+    <div id="inputModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden no-print p-3">
+        <div class="modal-box bg-white rounded-2xl w-full mx-auto overflow-hidden shadow-xl border border-slate-100">
+            <div class="modal-header p-5 sm:p-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 id="modalTitle" class="text-lg font-bold text-slate-900">เพิ่มรายการ</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none px-2">&times;</button>
+            </div>
+            <form id="procurementForm" onsubmit="handleSubmit(event)" class="modal-scroll p-5 sm:p-6 space-y-4">
+                <input type="hidden" id="currentModule">
+                <input type="hidden" id="editItemId">
+                <div>
+                    <label id="labelItemName" class="block text-xs font-bold text-slate-600 uppercase mb-1">ชื่อรายการ</label>
+                    <input type="text" id="itemName" required class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+                </div>
+
+                <!-- ผูกกับรายการคงเหลือ (เฉพาะโมดูลเบิก) -->
+                <div id="linkInventoryBlock" class="hidden">
+                    <label class="block text-xs font-bold text-emerald-700 uppercase mb-1">🔗 ผูกกับรายการคงเหลือ (ถ้ามี)</label>
+                    <select id="linkInventoryId" class="w-full border border-emerald-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-500 bg-emerald-50/40">
+                        <option value="">-- ไม่ผูกข้อมูล (บันทึกแยกต่างหาก) --</option>
+                    </select>
+                    <p class="text-[11px] text-slate-400 mt-1">เลือกแล้วระบบจะตัดจำนวนจากคลังให้อัตโนมัติเมื่อบันทึก (เฉพาะตอนสร้างใบเบิกใหม่)</p>
+                </div>
+
+                <div class="two-col grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">จำนวน</label>
+                        <input type="number" id="itemQty" required min="1" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase mb-1">หน่วยนับ</label>
+                        <select id="itemUnit" required onchange="handleUnitChange(this.value)" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 bg-white">
+                            <option value="" disabled selected>-- เลือกหน่วยนับ --</option>
+                            <option value="เครื่อง">เครื่อง</option>
+                            <option value="ชุด">ชุด</option>
+                            <option value="ชิ้น">ชิ้น</option>
+                            <option value="อัน">อัน</option>
+                            <option value="กล่อง">กล่อง</option>
+                            <option value="ขวด">ขวด</option>
+                            <option value="ถุง">ถุง</option>
+                            <option value="อื่นๆ">อื่นๆ (ระบุเอง)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="customUnitBlock" class="hidden">
+                    <label class="block text-xs font-bold text-blue-600 uppercase mb-1">ระบุหน่วยนับอื่นๆ</label>
+                    <input type="text" id="customUnit" class="w-full border border-blue-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 bg-blue-50/50" placeholder="เช่น ม้วน, แผ่น, แกลลอน">
+                </div>
+
+                <div id="priceFieldBlock">
+                    <label id="labelItemPrice" class="block text-xs font-bold text-slate-600 uppercase mb-1">ราคาต่อหน่วย (บาท)</label>
+                    <input type="number" id="itemPrice" min="0" step="0.01" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">หมายเหตุ / อาการชำรุด</label>
+                    <textarea id="itemRemarks" rows="2" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500"></textarea>
+                </div>
+
+                <div>
+                    <label id="labelStatus" class="block text-xs font-bold text-slate-600 uppercase mb-1">สถานะติดตาม</label>
+                    <select id="itemStatus" onchange="handleStatusChange(this.value)" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 bg-white"></select>
+                </div>
+
+                <!-- แสดงเฉพาะสถานะ "ติดต่อช่างสำเร็จ" -->
+                <div id="maintenanceScheduleBlock" class="p-3 bg-amber-50 border border-amber-200 rounded-xl hidden">
+                    <label class="block text-xs font-bold text-amber-700 uppercase mb-1">📅 วันเวลานัดหมายเข้าซ่อมของช่าง (จำเป็น)</label>
+                    <input type="datetime-local" id="itemSchedule" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 bg-white">
+                </div>
+
+                <!-- แสดงเฉพาะสถานะ "ซ่อมเสร็จสิ้น" -->
+                <div id="maintenanceCompletedBlock" class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl hidden">
+                    <label class="block text-xs font-bold text-emerald-700 uppercase mb-1">✅ วันที่ซ่อมเสร็จ (จำเป็น)</label>
+                    <input type="date" id="itemCompletedDate" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500 bg-white">
+                </div>
+
+                <div class="modal-footer pt-2 flex space-x-3 sticky bottom-0 bg-white">
+                    <button type="button" onclick="closeModal()" class="flex-1 bg-slate-100 text-slate-600 text-sm font-semibold py-3 rounded-xl hover:bg-slate-200 transition">ยกเลิก</button>
+                    <button type="submit" id="btnSubmitForm" class="flex-1 bg-blue-600 text-white text-sm font-semibold py-3 rounded-xl hover:bg-blue-700 transition">บันทึกข้อมูล</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= JAVASCRIPT CLOUD ENGINE ================= -->
+    <script>
+        const CLOUD_API_URL = "https://script.google.com/macros/s/AKfycbxytZvJzDak1eZGsF8N9EY9hbOmjtvlaSOm7MyZ5-8XgZU4NiDsrKBQFeBVQVgc9NEuag/exec";
+        const SESSION_KEY = "nb_session_user";
+
+        let appState = { purchase: [], maintenance: [], requisition: [], inventory: [], activityLog: [] };
+        let userDatabase = { "admin": { password: "Inter@123", status: "approved" } };
+
+        // เก็บรายการที่ถูกเลือกไว้สำหรับ export/print (เก็บเฉพาะช่วง session นี้)
+        let selectedRows = { purchase: new Set(), maintenance: new Set(), requisition: new Set(), inventory: new Set() };
+        let lastSeenActivityCount = 0;
+
+        const statusConfig = {
+            purchase: { "⏳ รอส่งคำสั่งซื้อ": "bg-slate-100 text-slate-700 border-slate-300", "⏳ รออนุมัติ": "bg-amber-50 text-amber-700 border-amber-200", "🚚 กำลังจัดส่ง": "bg-blue-50 text-blue-700 border-blue-200", "✅ ได้รับสินค้าแล้ว": "bg-emerald-50 text-emerald-700 border-emerald-200" },
+            maintenance: { "⏳ รอรายงานช่าง": "bg-slate-100 text-slate-600 border-slate-300", "📞 ติดต่อช่างสำเร็จ": "bg-indigo-50 text-indigo-700 border-indigo-200", "🔧 กำลังซ่อมแซม": "bg-amber-50 text-amber-700 border-amber-200", "✅ ซ่อมเสร็จสิ้น": "bg-emerald-50 text-emerald-700 border-emerald-200" },
+            requisition: { "⏳ รอจัดเตรียม": "bg-slate-100 text-slate-700 border-slate-300", "📦 จ่ายวัสดุแล้ว": "bg-emerald-50 text-emerald-700 border-emerald-200" },
+            inventory: { "🟢 คลังปกติ": "bg-emerald-50 text-emerald-700 border-emerald-200", "🟡 ใกล้หมด": "bg-amber-50 text-amber-700 border-amber-200", "🔴 หมดคลัง": "bg-rose-50 text-rose-700 border-rose-200" }
+        };
+
+        const moduleLabel = { purchase: "🛒 สั่งซื้อ", maintenance: "🔧 สั่งซ่อม", requisition: "📦 เบิกของ", inventory: "📊 คงเหลือ" };
+
+        let loggedInUser = "";
+        let isAdmin = false;
+
+        // ---------- ป้องกัน HTML/สคริปต์แทรกจากข้อมูลที่ผู้ใช้กรอก ----------
+        function escapeHtml(str) {
+            if (str === undefined || str === null) return '';
+            return String(str).replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
+        }
+
+        window.addEventListener('load', async () => {
+            await fetchUserDatabase();
+
+            // ---------- พยายามล็อกอินอัตโนมัติจาก session ที่จำไว้ในเครื่องนี้ ----------
+            let savedUser = null;
+            try { savedUser = localStorage.getItem(SESSION_KEY); } catch (e) { savedUser = null; }
+
+            if (savedUser && userDatabase[savedUser] && userDatabase[savedUser].status === 'approved') {
+                enterSystem(savedUser);
+            }
+
+            document.addEventListener('click', function(e) {
+                const notiDropdown = document.getElementById('noti-dropdown');
+                if (!e.target.closest('#noti-dropdown') && !e.target.closest('.relative')) {
+                    if (notiDropdown) notiDropdown.classList.add('hidden');
+                }
+            });
+        });
+
+        async function fetchUserDatabase() {
+            try {
+                const response = await fetch(CLOUD_API_URL + "?action=getUsers");
+                if (!response.ok) throw new Error("Network error");
+                const cloudUsers = await response.json();
+                if (cloudUsers && Object.keys(cloudUsers).length > 0) userDatabase = cloudUsers;
+            } catch (e) { console.log("Using backup database."); }
+            if (!userDatabase["admin"]) userDatabase["admin"] = { password: "Inter@123", status: "approved" };
+        }
+
+        async function handleLogin() {
+            const username = document.getElementById('loginUsername').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = document.getElementById('loginError');
+            const btnSubmit = document.getElementById('btnLoginSubmit');
+
+            if (!username || !password) { alert("⚠️ กรุณากรอกสิทธิ์ผู้ใช้และรหัสผ่านก่อนครับ"); return; }
+
+            errorDiv.classList.add('hidden');
+            btnSubmit.innerText = "⏳ กำลังตรวจสอบสิทธิ์...";
+            btnSubmit.disabled = true;
+
+            await fetchUserDatabase();
+
+            if (!userDatabase[username]) {
+                userDatabase[username] = { password: password, status: "pending" };
+                await saveUserDatabase();
+                btnSubmit.innerText = "เข้าสู่ระบบ / ลงทะเบียนใหม่";
+                btnSubmit.disabled = false;
+                alert(`📝 ส่งคำขอลงทะเบียนชื่อ "${username}" เรียบร้อยแล้ว!\nกรุณาแจ้งแอดมิน เพื่ออนุมัติสิทธิ์ในระบบก่อนครับ`);
+                return;
+            }
+
+            const userData = userDatabase[username];
+            btnSubmit.innerText = "เข้าสู่ระบบ / ลงทะเบียนใหม่";
+            btnSubmit.disabled = false;
+
+            if (userData.status === "pending") {
+                errorDiv.innerText = "⏳ บัญชีของคุณอยู่ระหว่างรอแอดมิน อนุมัติสิทธิ์";
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (userData.password === password) {
+                const remember = document.getElementById('rememberMe').checked;
+                if (remember) {
+                    try { localStorage.setItem(SESSION_KEY, username); } catch (e) {}
+                } else {
+                    try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+                }
+                enterSystem(username);
+            } else {
+                errorDiv.innerText = "⚠️ รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้ง";
+                errorDiv.classList.remove('hidden');
+            }
+        }
+
+        async function saveUserDatabase() {
+            try {
+                await fetch(CLOUD_API_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: JSON.stringify({ action: "saveUsers", data: userDatabase })
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        async function syncWithCloud() {
+            const statusIndicator = document.getElementById('cloud-sync-status');
+            statusIndicator.innerText = "🔄 กำลังซิงค์ข้อมูลล่าสุดจาก Google Sheets...";
+            statusIndicator.className = "bg-amber-500 text-white text-center py-1 text-xs font-semibold no-print";
+
+            try {
+                const response = await fetch(CLOUD_API_URL + "?action=getData");
+                if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+
+                const cloudData = await response.json();
+                if (cloudData) {
+                    appState = cloudData;
+                    if (!appState.activityLog) appState.activityLog = [];
+                    if (!appState.purchase) appState.purchase = [];
+                    if (!appState.maintenance) appState.maintenance = [];
+                    if (!appState.requisition) appState.requisition = [];
+                    if (!appState.inventory) appState.inventory = [];
+                    statusIndicator.innerText = "🌐 เชื่อมต่อระบบฐานข้อมูลคลาวด์เรียบร้อย (ซิงค์ข้ามเครื่องสำเร็จ)";
+                    statusIndicator.className = "bg-emerald-600 text-white text-center py-1 text-xs font-semibold no-print";
+                    renderAllTables();
+                    updateNotificationSystem();
+                }
+            } catch (err) {
+                statusIndicator.innerText = `❌ ไม่สามารถซิงค์ได้: ${err.message || 'Failed to fetch'}`;
+                statusIndicator.className = "bg-rose-600 text-white text-center py-1 text-xs font-semibold no-print";
+                renderAllTables();
+            }
+        }
+
+        async function saveAppState() {
+            try {
+                await fetch(CLOUD_API_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: JSON.stringify({ action: "saveData", data: appState })
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        // ---------- บันทึกกิจกรรม: สร้าง / แก้ไข / ลบ / เปลี่ยนสถานะ พร้อมชื่อผู้ใช้และเวลา ----------
+        function logActivity(module, id, name, message) {
+            if (!appState.activityLog) appState.activityLog = [];
+            appState.activityLog.unshift({
+                module, id, name, message,
+                user: loggedInUser || "ไม่ทราบผู้ใช้",
+                timestamp: new Date().toISOString()
+            });
+            if (appState.activityLog.length > 80) appState.activityLog.length = 80;
+        }
+
+        function formatLogTime(isoStr) {
+            const dt = new Date(isoStr);
+            if (isNaN(dt.getTime())) return isoStr;
+            return dt.toLocaleDateString('th-TH') + ' ' + dt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+        }
+
+        function updateNotificationSystem() {
+            const badge = document.getElementById('noti-badge');
+            const listContainer = document.getElementById('noti-list');
+            const log = appState.activityLog || [];
+
+            const unread = Math.max(0, log.length - lastSeenActivityCount);
+            if (unread > 0) {
+                badge.innerText = unread > 99 ? '99+' : unread;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+
+            if (log.length > 0) {
+                listContainer.innerHTML = log.map(entry => `
+                    <div onclick="showPage('${entry.module}')" class="p-3 hover:bg-slate-50 cursor-pointer transition">
+                        <p class="text-[11px] font-semibold text-slate-700">${moduleLabel[entry.module] || entry.module} • ${escapeHtml(entry.id)} — ${escapeHtml(entry.name)}</p>
+                        <p class="text-[11px] text-slate-500 mt-0.5">${escapeHtml(entry.message)}</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">โดย <span class="font-semibold text-slate-500">${escapeHtml(entry.user)}</span> · ${formatLogTime(entry.timestamp)}</p>
+                    </div>
+                `).join('');
+            } else {
+                listContainer.innerHTML = `<p class="text-slate-400 p-3 text-center text-[11px]">ไม่มีรายการแจ้งเตือน</p>`;
+            }
+        }
+
+        function toggleNotificationDropdown() {
+            const dropdown = document.getElementById('noti-dropdown');
+            dropdown.classList.toggle('hidden');
+            if (!dropdown.classList.contains('hidden')) {
+                lastSeenActivityCount = (appState.activityLog || []).length;
+                document.getElementById('noti-badge').classList.add('hidden');
+            }
+        }
+
+        function clearActivityLog() {
+            if (confirm('⚠️ ยืนยันการล้างประวัติการแจ้งเตือนทั้งหมด?')) {
+                appState.activityLog = [];
+                lastSeenActivityCount = 0;
+                saveAppState();
+                updateNotificationSystem();
+            }
+        }
+
+        function generateNextId(module) {
+            const prefix = module === 'purchase' ? 'PO-' : module === 'maintenance' ? 'MT-' : module === 'requisition' ? 'RQ-' : 'IV-';
+            const items = appState[module] || [];
+            if (items.length === 0) return `${prefix}001`;
+            const maxId = items.reduce((max, item) => {
+                const num = parseInt(item.id.replace(prefix, ''), 10);
+                return num > max ? num : max;
+            }, 0);
+            return prefix + String(maxId + 1).padStart(3, '0');
+        }
+
+        function renderAdminApprovalPanel() {
+            const panel = document.getElementById('admin-approval-panel');
+            const pendingListContainer = document.getElementById('pending-users-list');
+            const approvedListContainer = document.getElementById('approved-users-list');
+
+            if (!isAdmin) { panel.classList.add('hidden'); return; }
+            panel.classList.remove('hidden');
+
+            let pendingUsers = Object.keys(userDatabase).filter(name => userDatabase[name].status === 'pending');
+            if (pendingUsers.length > 0) {
+                pendingListContainer.innerHTML = pendingUsers.map(name => `
+                    <div class="flex items-center justify-between p-3 bg-amber-50/50 border border-amber-200 rounded-xl">
+                        <div><p class="text-sm font-bold text-slate-800">${escapeHtml(name)}</p></div>
+                        <div class="flex gap-2">
+                            <button onclick="approveUser('${name}', true)" class="bg-emerald-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition">อนุมัติ ✅</button>
+                            <button onclick="approveUser('${name}', false)" class="bg-rose-100 text-rose-600 text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-rose-200 transition">ปฏิเสธ ❌</button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                pendingListContainer.innerHTML = '<p class="text-xs text-slate-400 p-2">ไม่มีรายการพนักงานใหม่ที่รออนุมัติ</p>';
+            }
+
+            let approvedUsers = Object.keys(userDatabase).filter(name => userDatabase[name].status === 'approved' && name !== 'admin');
+            if (approvedUsers.length > 0) {
+                approvedListContainer.innerHTML = approvedUsers.map(name => `
+                    <div class="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                        <div><p class="text-sm font-bold text-slate-800">${escapeHtml(name)}</p></div>
+                        <button onclick="deleteApprovedUser('${name}')" class="bg-rose-50 text-rose-600 hover:bg-rose-100 text-xs font-bold px-3 py-1.5 rounded-lg border border-rose-200 transition">ลบผู้ใช้ 🗑️</button>
+                    </div>
+                `).join('');
+            } else {
+                approvedListContainer.innerHTML = '<p class="text-xs text-slate-400 p-2">ไม่มีพนักงานคนอื่นในระบบ</p>';
+            }
+        }
+
+        async function approveUser(username, isApproved) {
+            if (isApproved) {
+                userDatabase[username].status = "approved";
+                alert(`✅ อนุมัติสิทธิ์ให้พนักงานชื่อ "${username}" สำเร็จ`);
+            } else {
+                delete userDatabase[username];
+            }
+            await saveUserDatabase();
+            renderAdminApprovalPanel();
+        }
+
+        async function deleteApprovedUser(username) {
+            if(confirm(`⚠️ ยืนยันการลบสิทธิ์เข้าใช้งานของพนักงานชื่อ "${username}"?`)) {
+                delete userDatabase[username];
+                await saveUserDatabase();
+                renderAdminApprovalPanel();
+            }
+        }
+
+        function enterSystem(username) {
+            loggedInUser = username;
+            isAdmin = (username === "admin");
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('main-application').classList.remove('hidden');
+            document.getElementById('displayUserName').innerText = (isAdmin ? "🌟 Admin: " : "👤 ") + username;
+            syncWithCloud();
+            showPage('dashboard');
+        }
+
+        function handleLogout() {
+            loggedInUser = ""; isAdmin = false;
+            try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+            document.getElementById('loginUsername').value = "";
+            document.getElementById('loginPassword').value = "";
+            document.getElementById('main-application').classList.add('hidden');
+            document.getElementById('login-screen').classList.remove('hidden');
+        }
+
+        function showPage(pageId) {
+            document.querySelectorAll('.page-view').forEach(p => p.classList.add('hidden'));
+            document.getElementById('page-' + pageId).classList.remove('hidden');
+            if(pageId === 'dashboard') renderAdminApprovalPanel();
+            else syncWithCloud();
+        }
+
+        function handleUnitChange(value) {
+            document.getElementById('customUnitBlock').classList.toggle('hidden', value !== 'อื่นๆ');
+        }
+
+        // ฟังก์ชันตรวจเช็กการเปลี่ยนสถานะเพื่อเปิด/ปิดช่องกรอกที่เกี่ยวข้อง (เฉพาะโมดูลซ่อม)
+        function handleStatusChange(statusValue) {
+            const currentModule = document.getElementById('currentModule').value;
+            const scheduleBlock = document.getElementById('maintenanceScheduleBlock');
+            const completedBlock = document.getElementById('maintenanceCompletedBlock');
+            if (currentModule !== 'maintenance') { scheduleBlock.classList.add('hidden'); completedBlock.classList.add('hidden'); return; }
+
+            scheduleBlock.classList.toggle('hidden', statusValue !== '📞 ติดต่อช่างสำเร็จ');
+            completedBlock.classList.toggle('hidden', statusValue !== '✅ ซ่อมเสร็จสิ้น');
+        }
+
+        function populateLinkInventoryOptions(selectedId) {
+            const select = document.getElementById('linkInventoryId');
+            const items = appState.inventory || [];
+            select.innerHTML = '<option value="">-- ไม่ผูกข้อมูล (บันทึกแยกต่างหาก) --</option>' +
+                items.map(inv => `<option value="${inv.id}" ${inv.id === selectedId ? 'selected' : ''}>${escapeHtml(inv.name)} (คงเหลือ ${inv.qty} ${escapeHtml(inv.unit)})</option>`).join('');
+        }
+
+        function openModal(module, id = null) {
+            document.getElementById('procurementForm').reset();
+            document.getElementById('currentModule').value = module;
+            document.getElementById('editItemId').value = id || '';
+            document.getElementById('customUnitBlock').classList.add('hidden');
+            document.getElementById('maintenanceScheduleBlock').classList.add('hidden');
+            document.getElementById('maintenanceCompletedBlock').classList.add('hidden');
+            document.getElementById('linkInventoryBlock').classList.toggle('hidden', module !== 'requisition');
+            if (module === 'requisition') populateLinkInventoryOptions(null);
+
+            const statusSelect = document.getElementById('itemStatus');
+            statusSelect.innerHTML = Object.keys(statusConfig[module]).map(s => `<option value="${s}">${s}</option>`).join('');
+            document.getElementById('priceFieldBlock').classList.toggle('hidden', module === 'inventory');
+
+            if(id) {
+                document.getElementById('modalTitle').innerText = "แก้ไขข้อมูลรายการ";
+                const item = appState[module].find(i => i.id === id);
+                document.getElementById('itemName').value = item.name;
+                document.getElementById('itemQty').value = item.qty;
+                document.getElementById('itemUnit').value = ["เครื่อง","ชุด","ชิ้น","อัน","กล่อง","ขวด","ถุง"].includes(item.unit) ? item.unit : "อื่นๆ";
+                if(item.unit && !["เครื่อง","ชุด","ชิ้น","อัน","กล่อง","ขวด","ถุง"].includes(item.unit)) {
+                    document.getElementById('customUnitBlock').classList.remove('hidden');
+                    document.getElementById('customUnit').value = item.unit;
+                }
+                if (module !== 'inventory') document.getElementById('itemPrice').value = item.price;
+                document.getElementById('itemRemarks').value = item.remarks;
+                statusSelect.value = item.status;
+
+                if (module === 'maintenance') {
+                    handleStatusChange(item.status);
+                    if (item.schedule) document.getElementById('itemSchedule').value = item.schedule;
+                    if (item.completedDate) document.getElementById('itemCompletedDate').value = item.completedDate;
+                }
+                if (module === 'requisition' && item.linkedInventoryId) {
+                    populateLinkInventoryOptions(item.linkedInventoryId);
+                    document.getElementById('linkInventoryId').disabled = true; // ไม่ให้เปลี่ยนลิงก์ตอนแก้ไข ป้องกันตัดสต๊อกซ้ำ
+                } else if (module === 'requisition') {
+                    document.getElementById('linkInventoryId').disabled = false;
+                }
+            } else {
+                document.getElementById('modalTitle').innerText = "เพิ่มรายการใหม่";
+                document.getElementById('linkInventoryId').disabled = false;
+            }
+            document.getElementById('inputModal').classList.remove('hidden');
+        }
+
+        function closeModal() { document.getElementById('inputModal').classList.add('hidden'); }
+
+        // ---------- ปรับสถานะคลังอัตโนมัติตามจำนวนคงเหลือ ----------
+        function autoInventoryStatus(qty) {
+            if (qty <= 0) return "🔴 หมดคลัง";
+            if (qty <= 5) return "🟡 ใกล้หมด";
+            return "🟢 คลังปกติ";
+        }
+
+        async function handleSubmit(e) {
+            e.preventDefault();
+            const module = document.getElementById('currentModule').value;
+            const id = document.getElementById('editItemId').value;
+
+            let finalUnit = document.getElementById('itemUnit').value;
+            if (finalUnit === 'อื่นๆ') finalUnit = document.getElementById('customUnit').value.trim();
+
+            const name = document.getElementById('itemName').value.trim();
+            const qty = parseInt(document.getElementById('itemQty').value);
+            const price = module === 'inventory' ? 0 : parseFloat(document.getElementById('itemPrice').value) || 0;
+            const remarks = document.getElementById('itemRemarks').value;
+            const status = document.getElementById('itemStatus').value;
+            const schedule = module === 'maintenance' ? document.getElementById('itemSchedule').value : "";
+            const completedDate = module === 'maintenance' ? document.getElementById('itemCompletedDate').value : "";
+            const linkedInventoryId = module === 'requisition' ? document.getElementById('linkInventoryId').value : "";
+
+            // ---------- ตรวจสอบข้อมูลจำเป็นของโมดูลซ่อม ----------
+            if (module === 'maintenance') {
+                if (status === '📞 ติดต่อช่างสำเร็จ' && !schedule) {
+                    alert("⚠️ กรุณาระบุวันเวลานัดหมายช่างก่อนบันทึกครับ");
+                    return;
+                }
+                if (status === '✅ ซ่อมเสร็จสิ้น' && !completedDate) {
+                    alert("⚠️ กรุณาระบุวันที่ซ่อมเสร็จก่อนบันทึกครับ");
+                    return;
+                }
+            }
+
+            try {
+                const response = await fetch(CLOUD_API_URL + "?action=getData");
+                const cloudData = await response.json();
+                if (cloudData) {
+                    appState = cloudData;
+                    if (!appState.activityLog) appState.activityLog = [];
+                    if (!appState.inventory) appState.inventory = [];
+                }
+            } catch(err) { console.log("Updating locally."); }
+
+            const today = new Date().toLocaleDateString('th-TH');
+            const nowIso = new Date().toISOString();
+
+            if (id) {
+                const item = appState[module].find(i => i.id === id);
+                if (item) {
+                    const oldName = item.name;
+                    const statusChanged = item.status !== status;
+                    const nameChanged = item.name !== name;
+
+                    item.name = name; item.qty = qty; item.unit = finalUnit;
+                    if (module !== 'inventory') item.price = price;
+                    item.remarks = remarks; item.status = status;
+                    item.statusClass = statusConfig[module][status];
+                    if (module === 'maintenance') { item.schedule = schedule; item.completedDate = completedDate; }
+                    item.lastEditedBy = loggedInUser;
+                    item.lastEditedAt = nowIso;
+
+                    if (statusChanged) logActivity(module, item.id, item.name, `เปลี่ยนสถานะเป็น ${status}`);
+                    if (nameChanged) logActivity(module, item.id, item.name, `แก้ไขชื่อรายการ (ชื่อเดิม: ${oldName})`);
+                    if (!statusChanged && !nameChanged) logActivity(module, item.id, item.name, `แก้ไขรายละเอียดข้อมูล`);
+                }
+            } else {
+                const newId = generateNextId(module);
+                let newItem = {
+                    id: newId, name, qty, unit: finalUnit, price, remarks,
+                    reportedBy: loggedInUser, date: today, status, statusClass: statusConfig[module][status]
+                };
+                if (module === 'maintenance') { newItem.schedule = schedule; newItem.completedDate = completedDate; }
+                if (module === 'requisition' && linkedInventoryId) newItem.linkedInventoryId = linkedInventoryId;
+                appState[module].push(newItem);
+                logActivity(module, newId, name, `สร้างรายการใหม่ (สถานะ: ${status})`);
+
+                // ---------- ตัดสต๊อกอัตโนมัติเมื่อเบิกแบบผูกกับรายการคงเหลือ ----------
+                if (module === 'requisition' && linkedInventoryId) {
+                    const invItem = appState.inventory.find(i => i.id === linkedInventoryId);
+                    if (invItem) {
+                        const newQty = Math.max(0, invItem.qty - qty);
+                        invItem.qty = newQty;
+                        invItem.status = autoInventoryStatus(newQty);
+                        invItem.statusClass = statusConfig.inventory[invItem.status];
+                        invItem.lastEditedBy = loggedInUser;
+                        invItem.lastEditedAt = nowIso;
+                        logActivity('inventory', invItem.id, invItem.name, `ตัดสต๊อกอัตโนมัติจากใบเบิก ${newId} (-${qty} ${finalUnit}) คงเหลือ ${newQty}`);
+                    }
+                }
+            }
+
+            await saveAppState();
+            closeModal();
+            syncWithCloud();
+        }
+
+        async function updateItemStatus(module, id, newStatus) {
+            const item = appState[module].find(i => i.id === id);
+            if (item) {
+                // สถานะที่ต้องขอข้อมูลเพิ่มเติม ให้เปิด modal แทนการเปลี่ยนตรงๆ
+                if (module === 'maintenance' && (newStatus === '📞 ติดต่อช่างสำเร็จ' || newStatus === '✅ ซ่อมเสร็จสิ้น')) {
+                    item.status = newStatus; // เปลี่ยนชั่วคราวเพื่อให้ modal โชว์ช่องที่ถูกต้อง (ยังไม่ save จนกว่าจะกรอกครบ)
+                    openModal(module, id);
+                    return;
+                }
+                const changed = item.status !== newStatus;
+                item.status = newStatus;
+                item.statusClass = statusConfig[module][newStatus];
+                item.lastEditedBy = loggedInUser;
+                item.lastEditedAt = new Date().toISOString();
+                if (changed) logActivity(module, item.id, item.name, `เปลี่ยนสถานะเป็น ${newStatus}`);
+                await saveAppState();
+                syncWithCloud();
+            }
+        }
+
+        async function deleteItem(module, id) {
+            const item = appState[module].find(i => i.id === id);
+            const itemName = item ? item.name : id;
+            if(confirm(`⚠️ ยืนยันการลบรายการ ${id} - ${itemName}?\nการลบจะถูกบันทึกในประวัติกิจกรรมพร้อมชื่อผู้ลบ`)) {
+                appState[module] = appState[module].filter(i => i.id !== id);
+                selectedRows[module].delete(id);
+                logActivity(module, id, itemName, `🗑️ ลบรายการออกจากระบบ`);
+                await saveAppState();
+                syncWithCloud();
+            }
+        }
+
+        // ---------- เลือกรายการสำหรับ Export/Print ----------
+        function toggleRowSelect(module, id, checked) {
+            if (checked) selectedRows[module].add(id); else selectedRows[module].delete(id);
+            updateSelectionCount(module);
+        }
+
+        function toggleSelectAll(module, checked) {
+            const tbody = document.getElementById(`table-${module}`);
+            tbody.querySelectorAll('input.row-select').forEach(cb => {
+                cb.checked = checked;
+                if (checked) selectedRows[module].add(cb.dataset.id); else selectedRows[module].delete(cb.dataset.id);
+            });
+            updateSelectionCount(module);
+        }
+
+        function updateSelectionCount(module) {
+            const el = document.getElementById(`selcount-${module}`);
+            if (el) {
+                const n = selectedRows[module].size;
+                el.innerText = n > 0 ? `เลือกอยู่ ${n} รายการ (ไม่เลือก = ทั้งหมด)` : 'ยังไม่ได้เลือก = จะพิมพ์/ส่งออกทั้งหมด';
+            }
+        }
+
+        // ---------- พิมพ์: ถ้าไม่ได้เลือกแถวไหนเลยจะพิมพ์ทั้งหมด, ถ้าติ๊กไว้จะพิมพ์เฉพาะที่เลือก ----------
+        function printModule(module) {
+            if (selectedRows[module].size === 0) {
+                window.print();
+                return;
+            }
+
+            const tbody = document.getElementById(`table-${module}`);
+            const rows = tbody.querySelectorAll('tr');
+            rows.forEach(row => {
+                const cb = row.querySelector('input.row-select');
+                if (cb && !selectedRows[module].has(cb.dataset.id)) row.classList.add('print-hide');
+                else row.classList.remove('print-hide');
+            });
+
+            const note = document.getElementById('print-scope-note');
+            note.innerText = `พิมพ์เฉพาะรายการที่เลือก (${selectedRows[module].size} รายการ) — ${moduleLabel[module]}`;
+
+            window.print();
+
+            setTimeout(() => {
+                rows.forEach(row => row.classList.remove('print-hide'));
+                note.innerText = '';
+            }, 300);
+        }
+
+        // ---------- ส่งออก CSV: ถ้าไม่ได้เลือกแถวไหนเลยจะส่งออกทั้งหมด, ถ้าติ๊กไว้จะส่งออกเฉพาะที่เลือก ----------
+        function exportModule(module) {
+            const onlySelected = selectedRows[module].size > 0;
+            let items = appState[module] || [];
+            if (onlySelected) items = items.filter(i => selectedRows[module].has(i.id));
+
+            if (items.length === 0) { alert("ไม่มีข้อมูลสำหรับการส่งออกครับ"); return; }
+
+            let csvContent = "\uFEFF"; // ป้องกันสระภาษาไทยเพี้ยนใน Excel
+
+            if(module === 'purchase') {
+                csvContent += "รหัส,รายการสั่งซื้อ,จำนวน,หน่วยนับ,ราคาต่อหน่วย,ราคารวม,หมายเหตุ,ผู้รายงาน,วันที่,สถานะ\n";
+                items.forEach(i => {
+                    csvContent += `"${i.id}","${i.name}",${i.qty},"${i.unit}",${i.price},${i.qty*i.price},"${i.remarks||''}","${i.reportedBy}","${i.date}","${i.status}"\n`;
+                });
+            } else if(module === 'maintenance') {
+                csvContent += "รหัส,รายการสั่งซ่อม,จำนวน,หน่วยนับ,ค่าซ่อมต่อหน่วย,ราคารวม,อาการ/ประวัติช่าง,วันนัดหมายช่าง,วันที่ซ่อมเสร็จ,ผู้รายงาน,วันที่,สถานะ\n";
+                items.forEach(i => {
+                    csvContent += `"${i.id}","${i.name}",${i.qty},"${i.unit}",${i.price},${i.qty*i.price},"${i.remarks||''}","${i.schedule||'-'}","${i.completedDate||'-'}","${i.reportedBy}","${i.date}","${i.status}"\n`;
+                });
+            } else if(module === 'requisition') {
+                csvContent += "รหัส,รายการเบิก,จำนวน,หน่วยนับ,มูลค่าต่อหน่วย,ราคารวมเบิก,หมายเหตุห้องที่ใช้,ผู้รายงาน,วันที่,สถานะ\n";
+                items.forEach(i => {
+                    csvContent += `"${i.id}","${i.name}",${i.qty},"${i.unit}",${i.price},${i.qty*i.price},"${i.remarks||''}","${i.reportedBy}","${i.date}","${i.status}"\n`;
+                });
+            } else if(module === 'inventory') {
+                csvContent += "รหัส,รายการคงเหลือ,จำนวน,หน่วยนับ,หมายเหตุที่ตั้ง,ผู้รายงาน,วันที่,สถานะ\n";
+                items.forEach(i => {
+                    csvContent += `"${i.id}","${i.name}",${i.qty},"${i.unit}","${i.remarks||''}","${i.reportedBy}","${i.date}","${i.status}"\n`;
+                });
+            }
+
+            let blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            let link = document.createElement("a");
+            let url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Report_${module}${onlySelected ? '_selected' : ''}_${new Date().toLocaleDateString('th-TH')}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function formatThaiDateTime(dateTimeStr) {
+            if(!dateTimeStr) return "-";
+            const dt = new Date(dateTimeStr);
+            if(isNaN(dt.getTime())) return dateTimeStr;
+            return dt.toLocaleDateString('th-TH') + ' เวลา ' + dt.toLocaleTimeString('th-TH', {hour: '2-digit', minute:'2-digit'}) + ' น.';
+        }
+
+        function formatThaiDate(dateStr) {
+            if(!dateStr) return "-";
+            const dt = new Date(dateStr);
+            if(isNaN(dt.getTime())) return dateStr;
+            return dt.toLocaleDateString('th-TH');
+        }
+
+        function renderAllTables() {
+            const modules = ['purchase', 'maintenance', 'requisition', 'inventory'];
+            document.querySelectorAll('.admin-action-header').forEach(el => {
+                if (isAdmin) el.classList.remove('hidden'); else el.classList.add('hidden');
+            });
+
+            modules.forEach(m => {
+                const tbody = document.getElementById(`table-${m}`);
+                if (!tbody) return;
+
+                const searchVal = document.getElementById(`search-${m}`) ? document.getElementById(`search-${m}`).value.trim().toLowerCase() : "";
+                const filterVal = document.getElementById(`filter-${m}`) ? document.getElementById(`filter-${m}`).value : "";
+
+                let totalCost = 0;
+                let filteredItems = appState[m] || [];
+
+                if (searchVal) filteredItems = filteredItems.filter(item => item.name.toLowerCase().includes(searchVal) || item.id.toLowerCase().includes(searchVal));
+                if (filterVal) filteredItems = filteredItems.filter(item => item.status === filterVal);
+
+                tbody.innerHTML = filteredItems.map((item, idx) => {
+                    const rowCost = item.qty * (item.price || 0);
+                    totalCost += rowCost;
+                    const isChecked = selectedRows[m].has(item.id) ? 'checked' : '';
+                    const editedNote = item.lastEditedBy ? `<span class="block text-[10px] text-slate-400 mt-0.5">แก้ไขล่าสุด: ${escapeHtml(item.lastEditedBy)}</span>` : '';
+
+                    return `
+                        <tr class="hover:bg-slate-50/80 transition">
+                            <td class="p-4 text-center row-checkbox-cell no-print"><input type="checkbox" class="row-select w-4 h-4" data-id="${item.id}" ${isChecked} onchange="toggleRowSelect('${m}', '${item.id}', this.checked)"></td>
+                            <td class="p-4 text-center text-slate-500">${idx + 1}</td>
+                            <td class="p-4 font-bold text-slate-900">${escapeHtml(item.name)} <span class="text-[10px] text-slate-400 font-normal block">${item.id}</span></td>
+                            <td class="p-4 text-center font-semibold">${item.qty}</td>
+                            <td class="p-4 text-center text-slate-600">${escapeHtml(item.unit)}</td>
+                            ${m !== 'inventory' ? `
+                                <td class="p-4 text-right text-slate-600">${item.price.toLocaleString('th-TH')}</td>
+                                <td class="p-4 text-right font-bold text-slate-900">${rowCost.toLocaleString('th-TH')}</td>
+                            ` : ''}
+                            <td class="p-4 text-slate-500 text-xs max-w-xs whitespace-pre-line">${escapeHtml(item.remarks) || '-'}</td>
+                            ${m === 'maintenance' ? `<td class="p-4 text-amber-700 font-medium text-xs bg-amber-50/30">${formatThaiDateTime(item.schedule)}</td><td class="p-4 text-emerald-700 font-medium text-xs bg-emerald-50/30">${formatThaiDate(item.completedDate)}</td>` : ''}
+                            <td class="p-4 text-slate-600 text-xs">${escapeHtml(item.reportedBy)}${editedNote}</td>
+                            <td class="p-4 text-slate-400 text-xs">${item.date}</td>
+                            <td class="p-4">
+                                <select onchange="updateItemStatus('${m}', '${item.id}', this.value)" class="border px-2 py-1 rounded-xl text-xs font-semibold ${item.statusClass} bg-white cursor-pointer w-full">
+                                    ${Object.keys(statusConfig[m]).map(s => `<option value="${s}" ${item.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+                                </select>
+                            </td>
+                            <td class="p-4 text-center space-x-2 admin-action-header ${isAdmin ? '' : 'hidden'} no-print">
+                                <button onclick="openModal('${m}', '${item.id}')" class="text-blue-600 font-bold text-xs">⚙️ แก้ไข</button>
+                                <button onclick="deleteItem('${m}', '${item.id}')" class="text-red-500 font-bold text-xs">🗑️ ลบ</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+
+                updateSelectionCount(m);
+
+                if(document.getElementById(`total-cost-${m}`)) {
+                    document.getElementById(`total-cost-${m}`).innerText = totalCost.toLocaleString('th-TH', { minimumFractionDigits: 2 });
+                }
+            });
+        }
+    </script>
+</body>
+</html>
