@@ -12,15 +12,16 @@
         body { font-family: 'Sarabun', sans-serif; }
 
         /* ---------- Responsive Modal (popup) ---------- */
-        #inputModal .modal-box { max-height: 92vh; display: flex; flex-direction: column; }
-        #inputModal .modal-header, #inputModal .modal-footer { flex-shrink: 0; }
-        #inputModal .modal-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .modal-box { max-height: 92vh; display: flex; flex-direction: column; }
+        .modal-header, .modal-footer { flex-shrink: 0; }
+        .modal-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
         @media (min-width: 640px) {
             #inputModal .modal-box { max-width: 34rem; }
             #inputModal .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+            #passwordModal .modal-box { max-width: 26rem; }
         }
         @media (max-width: 639px) {
-            #inputModal .modal-box { max-height: 96vh; }
+            .modal-box { max-height: 96vh; }
         }
 
         /* ---------- Print: only selected rows ---------- */
@@ -95,9 +96,9 @@
                         <span id="noti-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
 
                         <div id="noti-dropdown" class="absolute right-0 mt-3 w-80 max-w-[90vw] bg-white border border-slate-200 rounded-xl shadow-xl py-2 hidden z-50 text-left text-xs">
-                            <div class="px-3 py-1.5 font-bold text-slate-700 border-b border-slate-100 flex items-center justify-between">
-                                <span>รายการแจ้งเตือน / ประวัติการอัปเดต</span>
-                                <span onclick="event.stopPropagation(); clearActivityLog()" class="text-[10px] font-medium text-slate-400 hover:text-rose-500 cursor-pointer">ล้างทั้งหมด</span>
+                            <div class="px-3 py-1.5 font-bold text-slate-700 border-b border-slate-100">
+                                รายการแจ้งเตือน / ประวัติการอัปเดต
+                                <span class="block text-[10px] font-normal text-slate-400 mt-0.5">ประวัตินี้เป็นบันทึกถาวรของระบบ ไม่สามารถลบได้ เพื่อให้ตรวจสอบย้อนหลังได้เสมอ</span>
                             </div>
                             <div id="noti-list" class="max-h-72 overflow-y-auto divide-y divide-slate-50">
                                 <p class="text-slate-400 p-3 text-center">ไม่มีรายการแจ้งเตือน</p>
@@ -107,7 +108,8 @@
 
                     <div class="text-right">
                         <p id="displayUserName" class="text-sm font-bold text-slate-900">ชื่อพนักงาน</p>
-                        <div class="flex items-center justify-end gap-2 mt-0.5">
+                        <div class="flex items-center justify-end gap-3 mt-0.5">
+                            <button onclick="openPasswordModal()" class="text-xs text-blue-600 hover:text-blue-800 font-medium transition">🔑 เปลี่ยนรหัสผ่าน</button>
                             <button onclick="handleLogout()" class="text-xs text-red-500 hover:text-red-700 font-medium transition">ออกจากระบบ ↩</button>
                         </div>
                     </div>
@@ -381,7 +383,7 @@
         </main>
     </div>
 
-    <!-- ================= POP-UP MODAL (Responsive) ================= -->
+    <!-- ================= POP-UP MODAL: เพิ่ม/แก้ไขรายการ (Responsive) ================= -->
     <div id="inputModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden no-print p-3">
         <div class="modal-box bg-white rounded-2xl w-full mx-auto overflow-hidden shadow-xl border border-slate-100">
             <div class="modal-header p-5 sm:p-6 border-b border-slate-100 flex justify-between items-center">
@@ -466,6 +468,35 @@
         </div>
     </div>
 
+    <!-- ================= POP-UP MODAL: เปลี่ยนรหัสผ่าน ================= -->
+    <div id="passwordModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden no-print p-3">
+        <div class="modal-box bg-white rounded-2xl w-full mx-auto overflow-hidden shadow-xl border border-slate-100">
+            <div class="modal-header p-5 sm:p-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-slate-900">🔑 เปลี่ยนรหัสผ่าน</h3>
+                <button onclick="closePasswordModal()" class="text-slate-400 hover:text-slate-600 text-2xl leading-none px-2">&times;</button>
+            </div>
+            <form id="passwordForm" onsubmit="handleChangePassword(event)" class="modal-scroll p-5 sm:p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">รหัสผ่านเดิม</label>
+                    <input type="password" id="currentPassword" required class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">รหัสผ่านใหม่</label>
+                    <input type="password" id="newPassword" required minlength="4" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase mb-1">ยืนยันรหัสผ่านใหม่</label>
+                    <input type="password" id="confirmPassword" required minlength="4" class="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-500">
+                </div>
+                <div id="passwordError" class="text-xs text-red-500 font-medium hidden"></div>
+                <div class="modal-footer pt-2 flex space-x-3">
+                    <button type="button" onclick="closePasswordModal()" class="flex-1 bg-slate-100 text-slate-600 text-sm font-semibold py-3 rounded-xl hover:bg-slate-200 transition">ยกเลิก</button>
+                    <button type="submit" class="flex-1 bg-blue-600 text-white text-sm font-semibold py-3 rounded-xl hover:bg-blue-700 transition">บันทึกรหัสผ่านใหม่</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- ================= JAVASCRIPT CLOUD ENGINE ================= -->
     <script>
         const CLOUD_API_URL = "https://script.google.com/macros/s/AKfycbxytZvJzDak1eZGsF8N9EY9hbOmjtvlaSOm7MyZ5-8XgZU4NiDsrKBQFeBVQVgc9NEuag/exec";
@@ -494,6 +525,11 @@
         function escapeHtml(str) {
             if (str === undefined || str === null) return '';
             return String(str).replace(/[&<>"']/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch]));
+        }
+
+        // ---------- คำนวณคลาสสีของสถานะจาก statusConfig เสมอ (ไม่พึ่งค่าที่บันทึกไว้เก่า) ----------
+        function statusClassOf(module, status) {
+            return (statusConfig[module] && statusConfig[module][status]) || 'bg-slate-100 text-slate-600 border-slate-300';
         }
 
         window.addEventListener('load', async () => {
@@ -560,11 +596,10 @@
 
             if (userData.password === password) {
                 const remember = document.getElementById('rememberMe').checked;
-                if (remember) {
-                    try { localStorage.setItem(SESSION_KEY, username); } catch (e) {}
-                } else {
-                    try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
-                }
+                try {
+                    if (remember) localStorage.setItem(SESSION_KEY, username);
+                    else localStorage.removeItem(SESSION_KEY);
+                } catch (e) {}
                 enterSystem(username);
             } else {
                 errorDiv.innerText = "⚠️ รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้ง";
@@ -581,6 +616,47 @@
                     body: JSON.stringify({ action: "saveUsers", data: userDatabase })
                 });
             } catch (e) { console.error(e); }
+        }
+
+        // ---------- เปลี่ยนรหัสผ่านของบัญชีตัวเอง ----------
+        function openPasswordModal() {
+            document.getElementById('passwordForm').reset();
+            document.getElementById('passwordError').classList.add('hidden');
+            document.getElementById('passwordModal').classList.remove('hidden');
+        }
+        function closePasswordModal() { document.getElementById('passwordModal').classList.add('hidden'); }
+
+        async function handleChangePassword(e) {
+            e.preventDefault();
+            const errDiv = document.getElementById('passwordError');
+            errDiv.classList.add('hidden');
+
+            const current = document.getElementById('currentPassword').value;
+            const next = document.getElementById('newPassword').value;
+            const confirm = document.getElementById('confirmPassword').value;
+
+            await fetchUserDatabase();
+
+            if (!userDatabase[loggedInUser] || userDatabase[loggedInUser].password !== current) {
+                errDiv.innerText = "⚠️ รหัสผ่านเดิมไม่ถูกต้อง";
+                errDiv.classList.remove('hidden');
+                return;
+            }
+            if (next !== confirm) {
+                errDiv.innerText = "⚠️ รหัสผ่านใหม่และการยืนยันไม่ตรงกัน";
+                errDiv.classList.remove('hidden');
+                return;
+            }
+            if (next.length < 4) {
+                errDiv.innerText = "⚠️ รหัสผ่านใหม่ควรมีอย่างน้อย 4 ตัวอักษร";
+                errDiv.classList.remove('hidden');
+                return;
+            }
+
+            userDatabase[loggedInUser].password = next;
+            await saveUserDatabase();
+            closePasswordModal();
+            alert("✅ เปลี่ยนรหัสผ่านสำเร็จ กรุณาใช้รหัสผ่านใหม่ในการเข้าสู่ระบบครั้งถัดไป");
         }
 
         async function syncWithCloud() {
@@ -624,6 +700,7 @@
         }
 
         // ---------- บันทึกกิจกรรม: สร้าง / แก้ไข / ลบ / เปลี่ยนสถานะ พร้อมชื่อผู้ใช้และเวลา ----------
+        // หมายเหตุ: ประวัตินี้เป็นบันทึกถาวรของระบบ ไม่มีปุ่มลบใน UI โดยเจตนา เพื่อให้ตรวจสอบย้อนหลังได้เสมอ
         function logActivity(module, id, name, message) {
             if (!appState.activityLog) appState.activityLog = [];
             appState.activityLog.unshift({
@@ -631,7 +708,7 @@
                 user: loggedInUser || "ไม่ทราบผู้ใช้",
                 timestamp: new Date().toISOString()
             });
-            if (appState.activityLog.length > 80) appState.activityLog.length = 80;
+            if (appState.activityLog.length > 200) appState.activityLog.length = 200;
         }
 
         function formatLogTime(isoStr) {
@@ -654,7 +731,7 @@
             }
 
             if (log.length > 0) {
-                listContainer.innerHTML = log.map(entry => `
+                listContainer.innerHTML = log.slice(0, 60).map(entry => `
                     <div onclick="showPage('${entry.module}')" class="p-3 hover:bg-slate-50 cursor-pointer transition">
                         <p class="text-[11px] font-semibold text-slate-700">${moduleLabel[entry.module] || entry.module} • ${escapeHtml(entry.id)} — ${escapeHtml(entry.name)}</p>
                         <p class="text-[11px] text-slate-500 mt-0.5">${escapeHtml(entry.message)}</p>
@@ -675,21 +752,12 @@
             }
         }
 
-        function clearActivityLog() {
-            if (confirm('⚠️ ยืนยันการล้างประวัติการแจ้งเตือนทั้งหมด?')) {
-                appState.activityLog = [];
-                lastSeenActivityCount = 0;
-                saveAppState();
-                updateNotificationSystem();
-            }
-        }
-
         function generateNextId(module) {
             const prefix = module === 'purchase' ? 'PO-' : module === 'maintenance' ? 'MT-' : module === 'requisition' ? 'RQ-' : 'IV-';
             const items = appState[module] || [];
             if (items.length === 0) return `${prefix}001`;
             const maxId = items.reduce((max, item) => {
-                const num = parseInt(item.id.replace(prefix, ''), 10);
+                const num = parseInt(String(item.id).replace(prefix, ''), 10);
                 return num > max ? num : max;
             }, 0);
             return prefix + String(maxId + 1).padStart(3, '0');
@@ -798,7 +866,9 @@
                 items.map(inv => `<option value="${inv.id}" ${inv.id === selectedId ? 'selected' : ''}>${escapeHtml(inv.name)} (คงเหลือ ${inv.qty} ${escapeHtml(inv.unit)})</option>`).join('');
         }
 
-        function openModal(module, id = null) {
+        // forceStatus: ใช้เมื่อเปลี่ยนสถานะจาก dropdown ในตาราง เพื่อพรีเซ็ตสถานะที่ต้องการโดยยังไม่บันทึกจริง
+        // จนกว่าผู้ใช้จะกรอกข้อมูลที่จำเป็น (วันนัดหมาย/วันที่ซ่อมเสร็จ) แล้วกดบันทึกในฟอร์ม
+        function openModal(module, id = null, forceStatus = null) {
             document.getElementById('procurementForm').reset();
             document.getElementById('currentModule').value = module;
             document.getElementById('editItemId').value = id || '';
@@ -824,10 +894,12 @@
                 }
                 if (module !== 'inventory') document.getElementById('itemPrice').value = item.price;
                 document.getElementById('itemRemarks').value = item.remarks;
-                statusSelect.value = item.status;
+
+                const statusToShow = forceStatus || item.status;
+                statusSelect.value = statusToShow;
 
                 if (module === 'maintenance') {
-                    handleStatusChange(item.status);
+                    handleStatusChange(statusToShow);
                     if (item.schedule) document.getElementById('itemSchedule').value = item.schedule;
                     if (item.completedDate) document.getElementById('itemCompletedDate').value = item.completedDate;
                 }
@@ -905,7 +977,6 @@
                     item.name = name; item.qty = qty; item.unit = finalUnit;
                     if (module !== 'inventory') item.price = price;
                     item.remarks = remarks; item.status = status;
-                    item.statusClass = statusConfig[module][status];
                     if (module === 'maintenance') { item.schedule = schedule; item.completedDate = completedDate; }
                     item.lastEditedBy = loggedInUser;
                     item.lastEditedAt = nowIso;
@@ -918,7 +989,7 @@
                 const newId = generateNextId(module);
                 let newItem = {
                     id: newId, name, qty, unit: finalUnit, price, remarks,
-                    reportedBy: loggedInUser, date: today, status, statusClass: statusConfig[module][status]
+                    reportedBy: loggedInUser, date: today, status
                 };
                 if (module === 'maintenance') { newItem.schedule = schedule; newItem.completedDate = completedDate; }
                 if (module === 'requisition' && linkedInventoryId) newItem.linkedInventoryId = linkedInventoryId;
@@ -932,7 +1003,6 @@
                         const newQty = Math.max(0, invItem.qty - qty);
                         invItem.qty = newQty;
                         invItem.status = autoInventoryStatus(newQty);
-                        invItem.statusClass = statusConfig.inventory[invItem.status];
                         invItem.lastEditedBy = loggedInUser;
                         invItem.lastEditedAt = nowIso;
                         logActivity('inventory', invItem.id, invItem.name, `ตัดสต๊อกอัตโนมัติจากใบเบิก ${newId} (-${qty} ${finalUnit}) คงเหลือ ${newQty}`);
@@ -948,15 +1018,14 @@
         async function updateItemStatus(module, id, newStatus) {
             const item = appState[module].find(i => i.id === id);
             if (item) {
-                // สถานะที่ต้องขอข้อมูลเพิ่มเติม ให้เปิด modal แทนการเปลี่ยนตรงๆ
+                // สถานะที่ต้องขอข้อมูลเพิ่มเติม ให้เปิด modal แทนการเปลี่ยนตรงๆ (ยังไม่บันทึกจนกว่าจะกรอกครบและกดบันทึก)
                 if (module === 'maintenance' && (newStatus === '📞 ติดต่อช่างสำเร็จ' || newStatus === '✅ ซ่อมเสร็จสิ้น')) {
-                    item.status = newStatus; // เปลี่ยนชั่วคราวเพื่อให้ modal โชว์ช่องที่ถูกต้อง (ยังไม่ save จนกว่าจะกรอกครบ)
-                    openModal(module, id);
+                    renderAllTables(); // คืนค่า dropdown เดิมในตาราง ป้องกันดูเหมือนเปลี่ยนแล้วทั้งที่ยังไม่ได้บันทึก
+                    openModal(module, id, newStatus);
                     return;
                 }
                 const changed = item.status !== newStatus;
                 item.status = newStatus;
-                item.statusClass = statusConfig[module][newStatus];
                 item.lastEditedBy = loggedInUser;
                 item.lastEditedAt = new Date().toISOString();
                 if (changed) logActivity(module, item.id, item.name, `เปลี่ยนสถานะเป็น ${newStatus}`);
@@ -968,7 +1037,7 @@
         async function deleteItem(module, id) {
             const item = appState[module].find(i => i.id === id);
             const itemName = item ? item.name : id;
-            if(confirm(`⚠️ ยืนยันการลบรายการ ${id} - ${itemName}?\nการลบจะถูกบันทึกในประวัติกิจกรรมพร้อมชื่อผู้ลบ`)) {
+            if(confirm(`⚠️ ยืนยันการลบรายการ ${id} - ${itemName}?\nการลบจะถูกบันทึกในประวัติกิจกรรมพร้อมชื่อผู้ลบอย่างถาวร`)) {
                 appState[module] = appState[module].filter(i => i.id !== id);
                 selectedRows[module].delete(id);
                 logActivity(module, id, itemName, `🗑️ ลบรายการออกจากระบบ`);
@@ -1099,7 +1168,7 @@
                 let totalCost = 0;
                 let filteredItems = appState[m] || [];
 
-                if (searchVal) filteredItems = filteredItems.filter(item => item.name.toLowerCase().includes(searchVal) || item.id.toLowerCase().includes(searchVal));
+                if (searchVal) filteredItems = filteredItems.filter(item => String(item.name).toLowerCase().includes(searchVal) || String(item.id).toLowerCase().includes(searchVal));
                 if (filterVal) filteredItems = filteredItems.filter(item => item.status === filterVal);
 
                 tbody.innerHTML = filteredItems.map((item, idx) => {
@@ -1107,6 +1176,7 @@
                     totalCost += rowCost;
                     const isChecked = selectedRows[m].has(item.id) ? 'checked' : '';
                     const editedNote = item.lastEditedBy ? `<span class="block text-[10px] text-slate-400 mt-0.5">แก้ไขล่าสุด: ${escapeHtml(item.lastEditedBy)}</span>` : '';
+                    const rowStatusClass = statusClassOf(m, item.status);
 
                     return `
                         <tr class="hover:bg-slate-50/80 transition">
@@ -1116,7 +1186,7 @@
                             <td class="p-4 text-center font-semibold">${item.qty}</td>
                             <td class="p-4 text-center text-slate-600">${escapeHtml(item.unit)}</td>
                             ${m !== 'inventory' ? `
-                                <td class="p-4 text-right text-slate-600">${item.price.toLocaleString('th-TH')}</td>
+                                <td class="p-4 text-right text-slate-600">${Number(item.price||0).toLocaleString('th-TH')}</td>
                                 <td class="p-4 text-right font-bold text-slate-900">${rowCost.toLocaleString('th-TH')}</td>
                             ` : ''}
                             <td class="p-4 text-slate-500 text-xs max-w-xs whitespace-pre-line">${escapeHtml(item.remarks) || '-'}</td>
@@ -1124,7 +1194,7 @@
                             <td class="p-4 text-slate-600 text-xs">${escapeHtml(item.reportedBy)}${editedNote}</td>
                             <td class="p-4 text-slate-400 text-xs">${item.date}</td>
                             <td class="p-4">
-                                <select onchange="updateItemStatus('${m}', '${item.id}', this.value)" class="border px-2 py-1 rounded-xl text-xs font-semibold ${item.statusClass} bg-white cursor-pointer w-full">
+                                <select onchange="updateItemStatus('${m}', '${item.id}', this.value)" class="border px-2 py-1 rounded-xl text-xs font-semibold ${rowStatusClass} bg-white cursor-pointer w-full">
                                     ${Object.keys(statusConfig[m]).map(s => `<option value="${s}" ${item.status === s ? 'selected' : ''}>${s}</option>`).join('')}
                                 </select>
                             </td>
