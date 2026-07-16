@@ -594,17 +594,32 @@
                 return;
             }
 
-            if (userData.password === password) {
-                const remember = document.getElementById('rememberMe').checked;
-                try {
-                    if (remember) localStorage.setItem(SESSION_KEY, username);
-                    else localStorage.removeItem(SESSION_KEY);
-                } catch (e) {}
-                enterSystem(username);
-            } else {
-                errorDiv.innerText = "⚠️ รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้ง";
-                errorDiv.classList.remove('hidden');
-            }
+            if (
+    String(userData.password).trim() ===
+    String(password).trim()
+) {
+    const remember = document.getElementById('rememberMe').checked;
+
+    try {
+        if (remember) {
+            localStorage.setItem(SESSION_KEY, username);
+        } else {
+            localStorage.removeItem(SESSION_KEY);
+        }
+    } catch (e) {}
+
+    enterSystem(username);
+
+} else {
+
+    console.log("Password in Sheet =", userData.password);
+    console.log("Password typed    =", password);
+
+    errorDiv.innerText =
+        "⚠️ รหัสผ่านไม่ถูกต้อง กรุณาตรวจสอบและลองใหม่อีกครั้ง";
+
+    errorDiv.classList.remove('hidden');
+}
         }
 
         async function saveUserDatabase() {
